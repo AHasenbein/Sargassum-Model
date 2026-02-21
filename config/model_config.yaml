@@ -21,6 +21,20 @@ project:
   conversion_path: "gasification_methanation"
   currency: "USD"
 
+app:
+  basic_cost_mode: true
+  log_level: "INFO"
+  auth:
+    enabled: true
+    users:
+      - gui
+      - alej
+      - matt
+      - alex
+      - plantdaddy
+    password_env_var: "APP_PASSWORD"
+    default_password: "nori"
+
 time:
   basis: "daily"
   # REVISED: Down from 330 → 290.
@@ -381,6 +395,7 @@ residues:
 
 miami_data:
   use_live_data: true
+  cache_ttl_minutes: 120
   noaa_station_id: "USW00012839"
   noaa_dataset: "NORMAL_DLY"
   eia_series_id: "N3035FL3M"

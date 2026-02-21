@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+.streamlit/secrets.toml
+data/raw/*.json
+data/user_settings/*.yaml
+outputs/*.json
+outputs/*.csv
+outputs/*.md
+*.log

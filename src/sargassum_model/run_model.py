@@ -10,10 +10,11 @@ from .config import load_config
 from .data_sources import pull_miami_data
 from .modes import run_mode_bundle
 from .optimizer import optimize_mode, run_sensitivity
+from .validation import validate_and_normalize_config
 
 
 def run_pipeline(config_path: str, output_dir: str) -> Dict[str, Any]:
-    config = load_config(config_path)
+    config = validate_and_normalize_config(load_config(config_path))
     conversion_path = str(config.get("project", {}).get("conversion_path", "gasification_methanation"))
     if conversion_path != "gasification_methanation":
         raise ValueError(

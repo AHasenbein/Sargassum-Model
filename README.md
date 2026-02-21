@@ -33,6 +33,21 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Configuration modes
+
+- `app.basic_cost_mode: true` keeps CAPEX, financing, and tax effects disabled for simple operating-cost analysis.
+- Set `app.basic_cost_mode: false` if you want full TEA-style CAPEX/tax economics.
+- All user input is normalized via config validation at runtime to prevent bad-value crashes.
+
+## Authentication
+
+- App login is enabled through `app.auth` in `config/model_config.yaml`.
+- Allowed users are configured as a list.
+- Password is read from environment variable `APP_PASSWORD` if present.
+- If `APP_PASSWORD` is not set, the app uses `app.auth.default_password`.
+- User settings are auto-saved per login to `data/user_settings/<username>.yaml`.
+- On next login, that user's saved settings are loaded automatically.
+
 ## Run command-line model
 
 ```bash
@@ -69,6 +84,40 @@ Dashboard features:
   - biochar, bio-oil, and syngas output estimates
   - pyrolysis-specific revenue and cost model
   - biochar-focused profit waterfall and economics table
+
+## Production deployment (GitHub-ready)
+
+This repo now includes:
+
+- `Procfile` for PaaS platforms.
+- `runtime.txt` pinning Python runtime.
+- `Dockerfile` and `.dockerignore` for container deployment.
+- `.streamlit/config.toml` for server settings.
+- `.github/workflows/ci.yml` for automatic GitHub CI smoke tests.
+- pinned dependencies in `requirements.txt`.
+
+### Deploy from GitHub (Streamlit Community Cloud)
+
+1. Push this repo to GitHub.
+2. In Streamlit Community Cloud, click **New app**.
+3. Select repo/branch and set entrypoint to `app.py`.
+4. Deploy.
+
+### Deploy from GitHub (Render/Railway/Fly/any Docker host)
+
+Use the included `Dockerfile`. Platform should run:
+
+```bash
+streamlit run app.py --server.address=0.0.0.0 --server.port=$PORT
+```
+
+### Local production-like run
+
+```bash
+make install
+make smoke
+make run
+```
 
 ## Notes on assumptions
 

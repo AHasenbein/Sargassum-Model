@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 @dataclass
@@ -24,17 +26,33 @@ def _safe_float(value: Any, fallback: float) -> float:
         return fallback
 
 
+def _http_session() -> requests.Session:
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        backoff_factor=0.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET",),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.headers.update({"User-Agent": "sargassum-model/1.0"})
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+
 def fetch_eia_florida_ng_price(fallback_price: float) -> tuple[float, str]:
     """
     Scrapes EIA historical table CSV endpoint for series N3035FL3M.
     If unavailable, returns fallback.
     """
-    url = "https://www.eia.gov/dnav/ng/hist_xls/N3035FL3M.xls"
+    session = _http_session()
     try:
-        # Keep this lightweight and robust without requiring xlrd/openpyxl.
-        # We use a simple API fallback endpoint from EIA where possible.
         alt_url = "https://api.eia.gov/v2/natural-gas/pri/sum/data/?frequency=monthly&data[0]=value&facets[stateid][]=FL&facets[process][]=PIN&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=1"
-        resp = requests.get(alt_url, timeout=10)
+        resp = session.get(alt_url, timeout=10)
         resp.raise_for_status()
         payload = resp.json()
         data = payload.get("response", {}).get("data", [])
@@ -57,8 +75,9 @@ def fetch_noaa_miami_temp_c(station_id: str, fallback_temp_c: float = 27.0) -> t
         "&startDate=2025-01-01&endDate=2025-12-31"
         "&dataTypes=TAVG&format=json&units=metric"
     )
+    session = _http_session()
     try:
-        resp = requests.get(url, timeout=10)
+        resp = session.get(url, timeout=10)
         resp.raise_for_status()
         rows = resp.json()
         vals = []
@@ -82,6 +101,26 @@ def pull_miami_data(config: Dict[str, Any], raw_data_dir: str | Path) -> MiamiDa
     fallback_price = _safe_float(market.get("fallback_natural_gas_price_usd_per_mmbtu"), 8.0)
     fallback_temp = 27.0
 
+    raw_path = Path(raw_data_dir)
+    raw_path.mkdir(parents=True, exist_ok=True)
+    output = raw_path / "miami_data_cache.json"
+
+    cache_ttl_minutes = int(miami_data.get("cache_ttl_minutes", 120))
+    if output.exists():
+        try:
+            cached = json.loads(output.read_text(encoding="utf-8"))
+            pulled = datetime.fromisoformat(cached.get("pulled_at_utc", ""))
+            age_minutes = (datetime.now(timezone.utc) - pulled).total_seconds() / 60.0
+            if age_minutes <= cache_ttl_minutes:
+                return MiamiDataBundle(
+                    methane_price_usd_per_mmbtu=float(cached["methane_price_usd_per_mmbtu"]),
+                    avg_temp_c=float(cached["avg_temp_c"]),
+                    source_notes=dict(cached.get("source_notes", {})),
+                    pulled_at_utc=str(cached.get("pulled_at_utc")),
+                )
+        except (ValueError, KeyError, TypeError):
+            pass
+
     if use_live:
         methane_price, price_note = fetch_eia_florida_ng_price(fallback_price)
         avg_temp_c, temp_note = fetch_noaa_miami_temp_c(miami_data.get("noaa_station_id", "USW00012839"), fallback_temp)
@@ -99,9 +138,6 @@ def pull_miami_data(config: Dict[str, Any], raw_data_dir: str | Path) -> MiamiDa
         pulled_at_utc=pulled_at,
     )
 
-    raw_path = Path(raw_data_dir)
-    raw_path.mkdir(parents=True, exist_ok=True)
-    output = raw_path / "miami_data_cache.json"
     output.write_text(json.dumps(bundle.__dict__, indent=2), encoding="utf-8")
     return bundle
 

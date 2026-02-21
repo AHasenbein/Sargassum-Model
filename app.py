@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hmac
+import json
+import os
 from pathlib import Path
 from typing import Any, Dict
 
@@ -13,10 +16,150 @@ from src.sargassum_model.data_sources import pull_miami_data
 from src.sargassum_model.modes import run_mode_bundle
 from src.sargassum_model.optimizer import optimize_mode, run_sensitivity
 from src.sargassum_model.pyrolysis_model import run_pyrolysis
+from src.sargassum_model.validation import validate_and_normalize_config
 from src.sargassum_model.visualization import mode_profit_bar, process_sankey, profit_waterfall, sensitivity_tornado
 
 
 CONFIG_PATH = Path("config/model_config.yaml")
+USER_SETTINGS_DIR = Path("data/user_settings")
+
+
+def apply_basic_cost_mode(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    cfg = deepcopy(cfg)
+    cfg.setdefault("policy", {})
+    cfg.setdefault("economics", {})
+    cfg.setdefault("operations", {})
+    cfg.setdefault("onsite_energy", {})
+    cfg.setdefault("pyrolysis", {})
+    cfg["onsite_energy"]["capex_usd"] = 0.0
+    cfg["pyrolysis"]["capex_usd"] = 0.0
+    cfg["economics"]["financing_cost_fraction_of_capex_per_year"] = 0.0
+    cfg["operations"]["maintenance_fraction_of_capex_per_year"] = 0.0
+    cfg["operations"]["insurance_fraction_of_capex_per_year"] = 0.0
+    cfg["policy"]["investment_tax_credit_fraction_of_capex"] = 0.0
+    cfg["policy"]["corporate_income_tax_rate_fraction"] = 0.0
+    cfg["policy"]["tax_cut_fraction"] = 0.0
+    cfg["policy"]["production_tax_credit_usd_per_mmbtu"] = 0.0
+    return cfg
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def run_cached_models(config_for_run: Dict[str, Any]) -> Dict[str, Any]:
+    bundle = pull_miami_data(config_for_run, raw_data_dir="data/raw")
+    methane_price = float(bundle.methane_price_usd_per_mmbtu)
+    results = run_mode_bundle(config_for_run, methane_price)
+    pyrolysis_result = run_pyrolysis(config_for_run)
+    return {
+        "bundle": bundle,
+        "methane_price": methane_price,
+        "gasification_results": results,
+        "pyrolysis_result": pyrolysis_result,
+    }
+
+
+def check_auth(config: Dict[str, Any]) -> None:
+    auth_cfg = config.get("app", {}).get("auth", {})
+    if not bool(auth_cfg.get("enabled", False)):
+        return
+
+    allowed_users = {str(u).strip().lower() for u in auth_cfg.get("users", []) if str(u).strip()}
+    password_env_var = str(auth_cfg.get("password_env_var", "APP_PASSWORD"))
+    default_password = str(auth_cfg.get("default_password", "nori"))
+    expected_password = os.getenv(password_env_var, default_password)
+
+    if st.session_state.get("authenticated", False):
+        st.sidebar.success(f"Logged in as {st.session_state.get('auth_user', 'user')}")
+        if st.sidebar.button("Logout"):
+            st.session_state["authenticated"] = False
+            st.session_state["auth_user"] = ""
+            st.rerun()
+        return
+
+    st.title("Sargassum Model Login")
+    st.caption("Authorized users only.")
+    with st.form("login_form", clear_on_submit=False):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login")
+
+    if submitted:
+        user_ok = username.strip().lower() in allowed_users
+        pass_ok = hmac.compare_digest(password, expected_password)
+        if user_ok and pass_ok:
+            st.session_state["authenticated"] = True
+            st.session_state["auth_user"] = username.strip()
+            st.rerun()
+        st.error("Invalid username or password.")
+    st.stop()
+
+
+def _safe_user_id(username: str) -> str:
+    cleaned = "".join(ch for ch in username.lower() if ch.isalnum() or ch in {"_", "-"})
+    return cleaned or "user"
+
+
+def _user_settings_path(username: str) -> Path:
+    USER_SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
+    return USER_SETTINGS_DIR / f"{_safe_user_id(username)}.yaml"
+
+
+def _extract_user_preferences(config: Dict[str, Any]) -> Dict[str, Any]:
+    allowed_sections = [
+        "project",
+        "feedstock",
+        "process",
+        "onsite_energy",
+        "existing_facility",
+        "market",
+        "utilities",
+        "operations",
+        "residues",
+        "miami_data",
+        "optimization",
+        "analysis",
+        "policy",
+        "pyrolysis",
+        "app",
+    ]
+    out: Dict[str, Any] = {}
+    for key in allowed_sections:
+        if key in config:
+            out[key] = deepcopy(config[key])
+    # Never allow auth config to be user-overridden.
+    if "app" in out and isinstance(out["app"], dict):
+        out["app"].pop("auth", None)
+    return out
+
+
+def _deep_update(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+    merged = deepcopy(base)
+    for key, value in updates.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_update(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+    return merged
+
+
+def load_user_preferences(base_config: Dict[str, Any], username: str) -> Dict[str, Any]:
+    path = _user_settings_path(username)
+    if not path.exists():
+        return base_config
+    try:
+        user_cfg = load_config(path)
+        return _deep_update(base_config, user_cfg)
+    except Exception:
+        return base_config
+
+
+def persist_user_preferences(current_config: Dict[str, Any], username: str) -> None:
+    prefs = _extract_user_preferences(current_config)
+    fingerprint = json.dumps(prefs, sort_keys=True, default=str)
+    if st.session_state.get("prefs_fingerprint") == fingerprint:
+        return
+    path = _user_settings_path(username)
+    save_config(prefs, path)
+    st.session_state["prefs_fingerprint"] = fingerprint
 
 
 def processing_cost_usd_per_day(econ: Dict[str, float]) -> float:
@@ -42,6 +185,8 @@ def processing_cost_usd_per_day(econ: Dict[str, float]) -> float:
 
 def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
     cfg = deepcopy(config)
+    cfg.setdefault("app", {})
+    cfg["app"].setdefault("basic_cost_mode", True)
     st.sidebar.header("Model controls")
     cfg["project"]["run_mode"] = st.sidebar.selectbox(
         "Operating mode",
@@ -49,6 +194,7 @@ def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
         index=["auto_compare", "onsite_energy", "existing_facility"].index(cfg["project"]["run_mode"]),
     )
     cfg["miami_data"]["use_live_data"] = st.sidebar.toggle("Use live Miami data pulls", value=cfg["miami_data"]["use_live_data"])
+    cfg["app"]["basic_cost_mode"] = st.sidebar.toggle("Basic cost-only mode (no CAPEX/taxes)", value=bool(cfg["app"]["basic_cost_mode"]))
 
     st.sidebar.subheader("Feedstock")
     cfg["feedstock"]["wet_tons_per_day"] = st.sidebar.slider("Wet tons/day", 1.0, 1000.0, float(cfg["feedstock"]["wet_tons_per_day"]), 0.5)
@@ -211,16 +357,6 @@ def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
         50000.0,
     )
 
-    # Basic-mode guardrails requested by user: keep CAPEX and taxes disabled.
-    cfg["onsite_energy"]["capex_usd"] = 0.0
-    cfg["pyrolysis"]["capex_usd"] = 0.0
-    cfg["economics"]["financing_cost_fraction_of_capex_per_year"] = 0.0
-    cfg["operations"]["maintenance_fraction_of_capex_per_year"] = 0.0
-    cfg["operations"]["insurance_fraction_of_capex_per_year"] = 0.0
-    cfg["policy"]["investment_tax_credit_fraction_of_capex"] = 0.0
-    cfg["policy"]["corporate_income_tax_rate_fraction"] = 0.0
-    cfg["policy"]["tax_cut_fraction"] = 0.0
-    cfg["policy"]["production_tax_credit_usd_per_mmbtu"] = 0.0
     return cfg
 
 
@@ -260,25 +396,32 @@ def pyrolysis_waterfall(pyro: Dict[str, Any]) -> go.Figure:
 
 def run_dashboard() -> None:
     st.set_page_config(page_title="Sargassum to Methane Model", layout="wide")
+    config = validate_and_normalize_config(load_config(CONFIG_PATH))
+    check_auth(config)
+    auth_user = str(st.session_state.get("auth_user", "anonymous"))
+    config = validate_and_normalize_config(load_user_preferences(config, auth_user))
     st.title("Sargassum to Methane Model (Miami)")
     st.caption("Interactive gasification + methanation model with expanded techno-economic accounting.")
-
-    config = load_config(CONFIG_PATH)
     if config.get("project", {}).get("conversion_path") != "gasification_methanation":
         st.error("This dashboard is for gasification_methanation. Update project.conversion_path in config.")
         st.stop()
-    working_config = sidebar_inputs(config)
+    working_config = validate_and_normalize_config(sidebar_inputs(config))
+    if bool(working_config.get("app", {}).get("basic_cost_mode", True)):
+        working_config = apply_basic_cost_mode(working_config)
+    persist_user_preferences(working_config, auth_user)
     st.sidebar.caption("Live mode: changing any input updates both tabs automatically.")
+    st.sidebar.caption(f"User settings auto-saved for: {auth_user}")
 
     if st.sidebar.button("Save current controls to config file"):
         save_config(working_config, CONFIG_PATH)
         st.sidebar.success("Saved to config/model_config.yaml")
 
     with st.spinner("Pulling Miami data and running model..."):
-        bundle = pull_miami_data(working_config, raw_data_dir="data/raw")
-        methane_price = float(bundle.methane_price_usd_per_mmbtu)
-        results = run_mode_bundle(working_config, methane_price)
-        pyrolysis_result = run_pyrolysis(working_config)
+        computed = run_cached_models(working_config)
+        bundle = computed["bundle"]
+        methane_price = float(computed["methane_price"])
+        results = computed["gasification_results"]
+        pyrolysis_result = computed["pyrolysis_result"]
 
     st.info(
         f"Methane price source: {bundle.source_notes['price']} | "

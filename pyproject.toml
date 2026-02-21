@@ -6,6 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "sargassum-model"
 version = "0.1.0"
 description = "Interactive sargassum to methane techno-economic model"
-requires-python = ">=3.10"
-dependencies = []
+requires-python = ">=3.9"
+dependencies = [
+  "numpy==2.0.2",
+  "pandas==2.3.3",
+  "scipy==1.13.1",
+  "pyyaml==6.0.3",
+  "requests==2.32.5",
+  "urllib3==1.26.20",
+  "plotly==6.5.2",
+  "streamlit==1.50.0",
+]
 
