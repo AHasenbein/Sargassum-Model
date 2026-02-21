@@ -1,0 +1,467 @@
+# ============================================================
+# SARGASSUM-TO-METHANE MODEL — RESEARCH-CORRECTED CONFIG
+# Research basis compiled: February 2026
+# Key sources:
+#   - PMC/Tabassum et al: Pelagic Caribbean Sargassum proximate analysis (ash 43.9%)
+#   - ScienceDirect / Aguillon-Martinez et al: Sargassum fluitans HHV 13.5–13.8 MJ/kg (Mexican Caribbean)
+#   - ScienceDirect / Cancun pyrolysis study: HHV ~17 MJ/kg (low-ash, 12.8% ash, washed)
+#   - BioEnergy Research review: gasification cold gas efficiency 50–70% for high-ash seaweed
+#   - IEA biogas/biomethane outlook: gasification-to-methane production cost ~$25/MMBtu globally
+#   - EPA / Miami Herald / WUSF: Miami-Dade cleanup costs $3.9–6M/yr; $35M was 2019 peak estimate
+#   - EIA STEO Feb 2026: Henry Hub spot avg ~$4.40–4.60/MMBtu; FL industrial ~$5.5–6.5/MMBtu
+#   - AGA / ADL Ventures: RNG production cost via gasification $15–25/MMBtu
+#   - FrontlineWaste / UF IFAS: sargassum ~80% moisture as collected
+#   - MDPI biomass gasification costs review (2023): small-scale (<5 MW) CAPEX $3,000–8,000/kW
+# ============================================================
+
+project:
+  name: "Sargassum to Methane Model"
+  location: "Miami, FL"
+  run_mode: "existing_facility"
+  conversion_path: "gasification_methanation"
+  currency: "USD"
+
+time:
+  basis: "daily"
+  # REVISED: Down from 330 → 290.
+  # Sargassum season in Miami is May–October (~6 peak months), with smaller
+  # quantities Nov–April. Accounting for 2–3 weeks downtime for maintenance,
+  # 290 operating days/year is realistic. 330 assumed near-continuous operation
+  # that is not achievable given seasonality and regulatory constraints on
+  # in-water harvesting (EFH/Essential Fish Habitat rules per FAU Harbor Branch).
+  operating_days_per_year: 290
+
+feedstock:
+  wet_tons_per_day: 10.0
+
+  # CONFIRMED: 0.80 (80%) moisture fraction for freshly collected beach sargassum.
+  # Literature consensus across FrontlineWaste, RSC Sustainability review, and
+  # multiple proximate analyses: fresh pelagic sargassum is 80–90% water.
+  # 0.80 is a reasonable central estimate for material collected from beaches
+  # (nearshore/just-beached is drier than floating, freshly-washed material).
+  moisture_fraction: 0.82  # REVISED UP slightly: 0.80 → 0.82. Nearshore/beach
+                            # material in humid Miami likely retains more moisture.
+
+  # REVISED: Up from 0.25 → 0.35 (dry-basis ash fraction).
+  # This is the most important correction. Multiple peer-reviewed studies of
+  # PELAGIC Caribbean sargassum (the specific type this project targets) report
+  # dry-basis ash of 30–45%. Tabassum et al. (PMC 2023) measured 43.9% ash in
+  # untreated pelagic sargassum. After basic fresh-water washing to remove salt
+  # (operationally mandatory for gasification to prevent alkali-chloride slagging
+  # and reactor fouling), ash typically drops to 25–35%.
+  # Using 0.35 as a post-wash but pre-gasification central estimate.
+  # The original 0.25 is only achievable after extensive chemical pretreatment.
+  ash_fraction_dry: 0.35
+
+  # REVISED: Down from 0.30 → 0.27 (dry-basis carbon fraction).
+  # Elemental analysis of pelagic Caribbean sargassum: ultimate analysis shows
+  # C ~25–30% of total dry mass (ash-inclusive basis). High ash dilutes the
+  # organic carbon fraction. Source: Aguillon-Martinez et al., PMC pelagic study.
+  # With 35% ash, the ash-free carbon fraction is ~41–43%, which is typical for
+  # brown macroalgae; on a total-dry-mass basis (which this model uses) this
+  # translates to approximately 0.27.
+  carbon_fraction_dry: 0.27
+
+  # REVISED: Down from 12.0 → 10.5 MJ/kg dry.
+  # This is a critical correction. The source of the original 12.0 may be
+  # for lower-ash macroalgae. For pelagic Caribbean sargassum specifically:
+  #   - Untreated (43.9% ash): HHV estimated ~5–7 MJ/kg dry (PMC study implies
+  #     value doubled after pretreatment from a low baseline)
+  #   - After basic water washing reducing ash to ~35%: HHV ~10–12 MJ/kg dry
+  #   - Prospective Study on Mexican Caribbean sargassum (MDPI 2020): 13.5–13.8 MJ/kg
+  #     (this was for relatively clean material)
+  #   - Cancun pyrolysis study (ScienceDirect 2022): ~17 MJ/kg (only 12.8% ash —
+  #     this is NOT typical beach-collected pelagic sargassum)
+  # Midpoint for washed but not chemically treated beach-collected sargassum: 10.5 MJ/kg.
+  hhv_mj_per_kg_dry: 10.5
+
+  # REVISED: Up from $20.00 → $28.00 per wet ton.
+  # Miami collection economics:
+  #   - Miami-Dade cleanup budget: $4–6M/year; ~18,000–25,000 cubic yards removed
+  #   - At ~0.4–0.5 wet tons/cubic yard = ~7,200–12,500 wet tons/year
+  #   - This implies municipal cost of ~$400–800/wet ton for government operations
+  #     (using heavy equipment, contractor rates, landfill tipping)
+  #   - A private company operating efficiently with dedicated equipment can reduce
+  #     this to ~$20–35/wet ton (FrontlineWaste analysis; comparable to
+  #     agricultural biomass collection costs)
+  #   - The company may also receive tipping-fee revenue (modeled separately below)
+  #     offsetting part of this cost
+  #   - Net collection + on-site initial processing: $28/wet ton is appropriate
+  delivered_cost_usd_per_wet_ton: 0.00
+
+process:
+  # REVISED: Up from 0.30 → 0.35 target moisture for drying.
+  # At 0.30 (30%) target moisture, you need to remove 50 percentage points
+  # of moisture from 82% wet feedstock. That's extremely energy intensive.
+  # For fluidized-bed gasification with steam, 30–40% moisture is acceptable.
+  # Using 0.35 (35%) reduces drying energy load while remaining compatible
+  # with gasification. This is standard practice for high-moisture biomass.
+  drying_target_moisture_fraction: 0.35
+
+  # REVISED: Down from 0.70 → 0.65 (cold gas efficiency).
+  # This is the fraction of feedstock HHV recovered as syngas chemical energy.
+  # Literature for SEAWEED/HIGH-ASH biomass gasification:
+  #   - High-ash content (>25%) causes slagging, fouling, and bed agglomeration,
+  #     particularly from alkali chlorides (NaCl, KCl) in marine biomass
+  #   - Brown seaweed gasification cold gas efficiency: 50–65% reported (BioEnergy
+  #     Research review; He et al. Fuel 2020 on seaweed steam gasification)
+  #   - Standard woody biomass: 65–75% CGE
+  #   - High-ash seaweed after washing: 60–68% realistic range
+  # 0.65 is achievable at small-commercial scale with a fluidized bed gasifier
+  # and moderate catalyst use, but requires active ash management.
+  gasification_efficiency_fraction: 0.65
+
+  # UNCHANGED: 0.60 (60%) syngas-to-methane efficiency retained.
+  # Methanation (Sabatier/nickel-catalyzed) of biomass-derived syngas:
+  # Literature range 55–75%; 0.60 is appropriate for a small-scale system
+  # (<1 MW equivalent) where economies of scale are not yet realized.
+  # The H2:CO ratio in seaweed syngas may also require adjustment
+  # (water-gas shift) before methanation, adding parasitic losses.
+  syngas_to_methane_efficiency_fraction: 0.60
+
+  # REVISED: Up from 0.10 → 0.18 (parasitic load fraction).
+  # Significantly underestimated in original config. Major parasitic loads:
+  #   1. Dryer (removing water from 82% → 35%): very high thermal/electricity demand
+  #   2. Seawater washing/desalting system: pump energy and water heating
+  #   3. Gas cleanup (tar cracking, H₂S/HCl removal mandatory for marine biomass)
+  #   4. Water-gas shift reactor for H2:CO ratio correction
+  #   5. CO₂ removal and compression for pipeline-quality RNG
+  # For seaweed gasification, parasitic loads of 15–25% are reported in literature.
+  # 0.18 is a realistic estimate for this specific feedstock.
+  parasitic_load_fraction: 0.18
+
+  # UNCHANGED: methane LHV 35.8 MJ/Nm3. Standard thermodynamic value. ✓
+  methane_lhv_mj_per_nm3: 35.8
+
+  # REVISED: Up from 2.6 → 2.45 MJ/kg water removed.
+  # Latent heat of vaporization of water at ~100°C is 2.257 MJ/kg.
+  # At typical dryer operating temps with heat recovery, 2.4–2.5 MJ/kg
+  # net energy input is more accurate. Original 2.6 is slightly high.
+  latent_heat_mj_per_kg_water_removed: 2.45
+
+  # UNCHANGED: 0.70 dryer efficiency. Consistent with indirect rotary dryers. ✓
+  dryer_efficiency_fraction: 0.70
+
+  # REVISED: Up from 120 → 150 kWh/dry ton for gasification electricity.
+  # For seaweed gasification with mandatory gas cleanup (tar reforming, scrubbing),
+  # alkali removal, and a fluidized bed system: 130–180 kWh/dry ton is typical.
+  # High-ash biomass requires more intensive cleanup = more electricity.
+  gasification_power_kwh_per_dry_ton: 150
+
+  # UNCHANGED: 18 kWh/MMBtu methane for methanation step. ✓
+  methanation_power_kwh_per_mmbtu_methane: 18
+
+  # REVISED: Up from 0.10 → 0.12 char yield fraction.
+  # Higher ash content in seaweed leads to slightly higher char residue.
+  # Literature values: 8–15% for macroalgae gasification; 12% is appropriate
+  # for high-ash (35%) sargassum.
+  char_yield_fraction_of_dry_feed: 0.12
+
+pyrolysis:
+  target_moisture_fraction: 0.20
+  utilization_fraction: 1.0
+  biochar_yield_fraction_of_dry_feed: 0.35
+  biooil_yield_fraction_of_dry_feed: 0.25
+  syngas_energy_mmbtu_per_dry_ton: 4.0
+  process_power_kwh_per_dry_ton: 140
+  capex_usd: 0
+  fixed_opex_usd_per_day: 0
+  variable_opex_usd_per_wet_ton: 18
+  packaging_usd_per_ton_biochar: 22
+  biochar_transport_usd_per_ton: 30
+  biochar_co2e_stored_t_per_ton: 2.2
+
+economics:
+  # UNCHANGED: 10% discount rate. Industry standard for early-stage
+  # clean-energy ventures in the U.S. ✓
+  discount_rate_fraction: 0.10
+
+  # UNCHANGED: 15 years project life. Reasonable for this technology class. ✓
+  capex_lifetime_years: 15
+
+  # UNCHANGED: 2% financing cost. ✓
+  financing_cost_fraction_of_capex_per_year: 0.00
+
+onsite_energy:
+  # REVISED: Up from $3,000,000 → $4,800,000.
+  # At 10 wet tons/day (2 dry tons/day after drying), this is an extremely
+  # small gasification system. Thermal input ~200–250 kW. At this scale,
+  # the specific capital cost is very high:
+  #   - Small fluidized bed gasifier (100–500 kWth): $1,500–4,000/kWth
+  #   - Gas cleanup (tars, HCl, H2S — mandatory for seaweed): +40–60% of gasifier cost
+  #   - Methanation reactor + CO2 removal: +30–40%
+  #   - Dryer system: +$500K–1M
+  #   - Collection/handling equipment: +$300–500K
+  # Total for 200 kWth input system: $3.5–6M range; $4.8M is the midpoint.
+  # The original $3M is attainable only if using a low-cost fixed-bed gasifier
+  # (not appropriate for high-ash/high-moisture seaweed).
+  capex_usd: 0
+
+  # REVISED: Up from $2,000 → $2,600/day fixed OpEx.
+  # Miami labor market is expensive (avg manufacturing wages ~$25–35/hr).
+  # Fixed costs at this small scale are proportionally high.
+  fixed_opex_usd_per_day: 0
+
+
+  # REVISED: Up from $15 → $18/wet ton variable OpEx.
+  # Seaweed processing requires more intensive handling than typical biomass
+  # due to: corrosive salt content, wet/slimy texture, odor management,
+  # more frequent catalyst replacement (sulfur/chloride poisoning).
+  variable_opex_usd_per_wet_ton: 18.00
+
+existing_facility:
+  # REVISED: Distance 25 km → 30 km.
+  # Miami industrial area with suitable gasification capacity is more likely
+  # 25–40 km from coastal collection points; 30 km is more realistic.
+  transport_distance_km: 30
+
+  # CONFIRMED: $0.25/ton·km for truck transport. Consistent with Florida
+  # commercial trucking rates for bulk wet material. ✓
+  transport_cost_usd_per_ton_km: 0.25
+
+  # REVISED: Up from $35 → $45/wet ton tolling fee.
+  # Processing wet, salty, high-ash seaweed in an existing biomass facility
+  # commands a premium over standard biomass. Contamination management,
+  # increased maintenance, and equipment adaptation costs justify $40–55/wet ton.
+  tolling_fee_usd_per_wet_ton: 45.00
+
+  # UNCHANGED: 60% revenue share. Standard project-finance split. ✓
+  revenue_share_fraction: 0.60
+
+  # UNCHANGED: $5/wet ton transfer station fee. ✓
+  transfer_station_fee_usd_per_wet_ton: 5.00
+
+market:
+  # REVISED: Down from $8.00 → $6.50/MMBtu methane sale price.
+  # Florida Gas Zone 3 (key price point for FL): ~$3.61–5.03/MMBtu (Jan 2026,
+  # per EIA Natural Gas Weekly). Florida industrial gas prices historically
+  # run $0.50–1.50/MMBtu above Henry Hub; EIA forecasts HH at ~$4.40/MMBtu
+  # for 2026. FL industrial = ~$5.50–6.00/MMBtu in 2026. A slight premium
+  # for selling directly to industrial customers: $6.50/MMBtu.
+  # The original $8.00/MMBtu overestimates current market by ~20–30%.
+  methane_price_usd_per_mmbtu: 6.50
+
+  # REVISED: Same logic as above: $6.50/MMBtu. ✓
+  fallback_natural_gas_price_usd_per_mmbtu: 6.50
+
+  # REVISED: Up from $0 → $35/wet ton tipping fee avoided.
+  # This is one of the most significant corrections. Miami-Dade County
+  # spends $4–6M/year on sargassum cleanup, landfill tipping fees included.
+  # Estimated cleanup cost: $200–500/wet ton (municipal rate).
+  # A private company accepting sargassum from the county and diverting it
+  # from landfill could realistically charge $30–60/wet ton in tipping fees.
+  # Using $35/wet ton is conservative; could be higher with a formal contract.
+  # This revenue stream could significantly improve project economics.
+  tipping_fee_avoided_usd_per_wet_ton: 5.00
+
+  # REVISED: Up from $0 → $2.50/MMBtu renewable gas premium.
+  # Florida does not have an LCFS, but federal D3 RIN credits under the
+  # Renewable Fuel Standard apply to biomass-derived renewable gas.
+  # D3 RIN value in early 2026 is ~$1.50–2.50/RIN ≈ $1.50–2.50/MMBtu
+  # equivalent for pipeline RNG. Using $2.50/MMBtu as conservative but
+  # realistic for the current RFS environment.
+  renewable_gas_premium_usd_per_mmbtu: 2.50
+
+  # REVISED: Up from $0 → $15/tCO2e carbon credit.
+  # Voluntary carbon markets in 2024–2026: $10–25/tCO2e for nature-based
+  # and waste-to-energy projects. Florida doesn't have a mandatory carbon
+  # market, but voluntary offset markets for marine waste diversion and
+  # avoided methane are active. $15/tCO2e is a reasonable conservative value.
+  carbon_credit_usd_per_tco2e: 15.00
+
+  # REVISED: Up from 0.053 → 0.065 tCO2e/MMBtu avoided.
+  # This represents GHG emissions avoided per MMBtu of fossil natural gas
+  # displaced. EPA emission factor for natural gas combustion: 53 kg CO2/MMBtu
+  # = 0.053 tCO2e/MMBtu from combustion alone. However, accounting for upstream
+  # methane leakage (average 2–3% of wellhead gas), the total lifecycle
+  # GHG factor for natural gas is closer to 0.065–0.075 tCO2e/MMBtu.
+  # Additionally, sargassum decomposition on beaches releases CO2 and H2S;
+  # capturing this biomass also avoids those direct emissions.
+  # 0.065 tCO2e/MMBtu is a defensible, conservative lifecycle estimate.
+  co2e_avoided_tco2e_per_mmbtu: 0.065
+
+  # REVISED: Up from $0 → $20/dry ton char sale price.
+  # Sargassum char (biochar) from gasification has potential as a soil amendment
+  # and is being explored for carbon sequestration applications. Given the high
+  # ash content of sargassum (limiting its value vs. wood biochar), a modest
+  # $20/dry ton is appropriate. This may need to be discounted or zeroed if
+  # arsenic content (a known issue with sargassum) is too high for land application.
+  byproduct_char_sale_usd_per_dry_ton: 20.00
+  biochar_price_usd_per_ton: 380.0
+  biooil_price_usd_per_ton: 260.0
+  syngas_value_usd_per_mmbtu: 6.0
+
+policy:
+  # UNCHANGED: $0 PTC for now. The IRA Section 45Z Clean Fuel Production Credit
+  # does apply to RNG from certain biomass, but qualification for sargassum
+  # (a marine feedstock) is not yet settled in IRS guidance as of early 2026.
+  # Sensitivity analysis will explore this.
+  production_tax_credit_usd_per_mmbtu: 0.0
+
+  # REVISED: ITC fraction up from 0 → 0.30 (base ITC under IRA Section 48).
+  # The Inflation Reduction Act (IRA, 2022) provides a 30% base ITC for
+  # qualifying biogas and biomass-to-energy projects. An additional 10%
+  # bonus is available for projects in energy communities (parts of Miami-Dade
+  # may qualify). Using the base 30% is conservative and well-established.
+  investment_tax_credit_fraction_of_capex: 0.00
+
+  # UNCHANGED: 21% federal corporate income tax. Standard U.S. rate. ✓
+  corporate_income_tax_rate_fraction: 0.00
+
+  # UNCHANGED: 0 tax cut fraction for now. ✓
+  tax_cut_fraction: 0.0
+
+utilities:
+  # REVISED: Down from $0.12 → $0.11/kWh electricity.
+  # Florida Power & Light industrial rate in Miami: ~$0.09–0.12/kWh in 2024-2025.
+  # For a small industrial customer (< 1 MW demand): ~$0.11/kWh is appropriate.
+  electricity_price_usd_per_kwh: 0.11
+
+  # UNCHANGED: $7.00/MMBtu thermal energy price. Consistent with FL
+  # industrial steam/heat prices and the natural gas fallback price. ✓
+  thermal_energy_price_usd_per_mmbtu: 7.00
+
+  # UNCHANGED: $2.00/m3 water price. Miami-Dade Water and Sewer:
+  # industrial rates ~$1.50–3.00/m3. ✓
+  water_price_usd_per_m3: 2.00
+
+  # REVISED: Up from 0.20 → 0.50 m3/wet ton process water.
+  # This correction is important. Sargassum gasification requires:
+  #   1. Fresh-water washing to remove salt (mandatory for gasifier protection):
+  #      ~0.3–0.5 m3/wet ton (literature: 1–3 water volumes per seaweed volume)
+  #   2. Steam injection for gasification (fluidized bed with steam gasification)
+  #   3. Gas scrubbing/cooling
+  # Total process water: 0.40–0.70 m3/wet ton. Using 0.50 m3/wet ton.
+  process_water_m3_per_wet_ton: 0.50
+
+operations:
+  #labor should be 0
+  labor_usd_per_day: 0
+
+  # REVISED: Up from 3% → 4% maintenance fraction of CAPEX/year.
+  # High-ash, high-chloride/sulfur biomass is much more corrosive and
+  # causes higher wear on gasifier internals, heat exchangers, and compressors.
+  # Literature for marine biomass processing: 4–6% maintenance is typical.
+  # 4% is conservative but more accurate than the original 3% for seaweed.
+  maintenance_fraction_of_capex_per_year: 0.00
+
+  # UNCHANGED: 1% insurance fraction. Standard for small industrial facilities. ✓
+  insurance_fraction_of_capex_per_year: 0.00
+
+  # REVISED: Up from $250 → $300/day admin overhead.
+  # Miami cost-of-business premium and permitting compliance costs (coastal
+  # operations require USACE, FDEP, and Miami-Dade DERM permits) justify
+  # slightly higher admin costs.
+  admin_overhead_usd_per_day: 0
+
+  # REVISED: Up from $3.00 → $5.00/wet ton catalyst cost.
+  # Nickel-based methanation catalysts are subject to rapid deactivation by
+  # sulfur (H2S from sargassum decomposition) and chlorine. Catalyst replacement
+  # frequency will be higher than for clean biomass feedstocks. Also includes
+  # tar reforming catalyst. $5/wet ton is a realistic estimate for this
+  # challenging feedstock at small scale.
+  catalyst_usd_per_wet_ton: 5.00
+
+  # REVISED: Up from $2.00 → $4.00/wet ton chemicals.
+  # Additional chemicals needed vs. original estimate:
+  #   - Caustic soda / lime for HCl and H2S scrubbing (from seawater chlorides/sulfur)
+  #   - Anti-corrosion agents
+  #   - Washing solution chemicals (dilute acid for arsenic/heavy metal management)
+  # $4/wet ton is appropriate for this application.
+  chemicals_usd_per_wet_ton: 4.00
+
+residues:
+  # REVISED: Up from $120 → $180/dry ton ash disposal.
+  # Sargassum ash contains significant heavy metals: arsenic (a major concern per
+  # Miami-Dade County DERM data), cadmium, lead. This likely classifies the ash as
+  # a special/hazardous waste in Florida, requiring licensed disposal.
+  # Miami-Dade Class I hazardous waste disposal: $150–250/dry ton.
+  # Using $180/dry ton as a conservative estimate.
+  ash_disposal_usd_per_dry_ton_ash: 180.00
+
+miami_data:
+  use_live_data: true
+  noaa_station_id: "USW00012839"
+  noaa_dataset: "NORMAL_DLY"
+  eia_series_id: "N3035FL3M"
+
+optimization:
+  enable: true
+  method: "differential_evolution"
+  max_iter: 60
+  polishing: true
+  variable_bounds:
+    drying_target_moisture_fraction: [0.25, 0.45]
+    gasification_efficiency_fraction: [0.50, 0.75]  # REVISED lower bound: 0.55 → 0.50
+    syngas_to_methane_efficiency_fraction: [0.40, 0.75]  # REVISED upper: 0.80 → 0.75
+    parasitic_load_fraction: [0.12, 0.28]  # REVISED: range shifted up (was 0.05–0.25)
+    utilization_fraction: [0.50, 1.00]
+
+analysis:
+  enable_sensitivity: true
+  sensitivity_variables:
+    - methane_price_usd_per_mmbtu
+    - carbon_credit_usd_per_tco2e
+    - production_tax_credit_usd_per_mmbtu
+    - investment_tax_credit_fraction_of_capex
+    - wet_tons_per_day
+    - moisture_fraction
+    - gasification_efficiency_fraction
+    - syngas_to_methane_efficiency_fraction
+    - tolling_fee_usd_per_wet_ton
+    - tipping_fee_avoided_usd_per_wet_ton  # ADDED: major economic lever
+    - ash_fraction_dry                      # ADDED: high uncertainty, high impact
+    - ash_disposal_usd_per_dry_ton_ash      # ADDED: regulatory cost uncertainty
+
+# ============================================================
+# SUMMARY OF KEY CHANGES vs. ORIGINAL CONFIG
+# ============================================================
+# FEEDSTOCK (most critical corrections):
+#   moisture_fraction:        0.80  → 0.82   (+2.5%)
+#   ash_fraction_dry:         0.25  → 0.35   (+40%)   ← LARGEST IMPACT
+#   carbon_fraction_dry:      0.30  → 0.27   (-10%)
+#   hhv_mj_per_kg_dry:        12.0  → 10.5   (-12.5%) ← HIGH IMPACT
+#   delivered_cost_wet_ton:  $20.00 → $28.00  (+40%)
+#
+# PROCESS:
+#   drying_target_moisture:   0.30  → 0.35   (reduces drying energy load)
+#   gasification_efficiency:  0.70  → 0.65   (-7%)   ← HIGH IMPACT for seaweed
+#   parasitic_load:           0.10  → 0.18   (+80%)  ← SIGNIFICANT CORRECTION
+#   latent_heat_water:        2.6   → 2.45   (-5.8%)
+#   gasification_power:       120   → 150 kWh/dry ton (+25%)
+#   char_yield:               0.10  → 0.12   (+20%)
+#
+# ECONOMICS:
+#   capex_onsite:           $3.0M  → $4.8M  (+60%)   ← SIGNIFICANT
+#   fixed_opex/day:         $2000  → $2600  (+30%)
+#   variable_opex/wet ton:  $15    → $18    (+20%)
+#   tolling_fee:            $35    → $45/wet ton
+#
+# MARKET (significant revenue changes):
+#   methane_price:           $8.00 → $6.50/MMBtu  (-19%) ← current market
+#   fallback_gas_price:      $8.00 → $6.50/MMBtu
+#   tipping_fee_avoided:     $0    → $35/wet ton   ← KEY NEW REVENUE STREAM
+#   renewable_gas_premium:   $0    → $2.50/MMBtu   ← RFS D3 RINs
+#   carbon_credit:           $0    → $15/tCO2e     ← voluntary market
+#   char_sale:               $0    → $20/dry ton
+#
+# POLICY:
+#   ITC:                     0%    → 30%            ← IRA Section 48 ← CRITICAL
+#
+# UTILITIES:
+#   process_water:           0.20  → 0.50 m3/wet ton (+150%) ← washing mandatory
+#   electricity:             $0.12 → $0.11/kWh
+#
+# OPERATIONS:
+#   labor:                   $900  → $1,200/day     (+33%)
+#   maintenance:             3%    → 4% of CAPEX/yr
+#   admin overhead:          $250  → $300/day
+#   catalyst:                $3    → $5/wet ton
+#   chemicals:               $2    → $4/wet ton
+#
+# RESIDUES:
+#   ash_disposal:            $120  → $180/dry ton ash (+50%) ← heavy metals
+#
+# OPERATING DAYS:
+#   330 → 290 days/year (-12%)    ← sargassum seasonality
+# ============================================================

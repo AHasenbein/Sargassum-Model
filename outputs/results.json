@@ -1,0 +1,159 @@
+{
+  "miami_data": {
+    "methane_price_usd_per_mmbtu": 6.5,
+    "avg_temp_c": 25.36897506925209,
+    "source_notes": {
+      "price": "EIA unavailable; using fallback methane price",
+      "temperature": "NOAA Miami station daily average temperature"
+    },
+    "pulled_at_utc": "2026-02-21T18:40:11.692569+00:00"
+  },
+  "baseline_results": [
+    {
+      "mode": "existing_facility",
+      "process": {
+        "wet_tons_per_day": 10.0,
+        "dry_tons_per_day": 1.8000000000000005,
+        "dried_mass_tons_per_day": 2.76923076923077,
+        "ash_tons_per_day": 0.6300000000000001,
+        "char_tons_per_day": 0.21600000000000005,
+        "water_removed_tons_per_day": 7.23076923076923,
+        "drying_thermal_mmbtu_per_day": 21.76061915545452,
+        "electrical_kwh_per_day": 363.5473460965254,
+        "methane_nm3_per_day": 186.7838166201118,
+        "methane_mmbtu_per_day": 5.197074783140297,
+        "gross_energy_mmbtu_per_day": 6.337896077000362,
+        "net_energy_mmbtu_per_day": 5.197074783140297,
+        "utilization_fraction": 1.0
+      },
+      "economics": {
+        "mode": "existing_facility",
+        "revenue_usd_per_day": 83.69649257709467,
+        "costs_usd_per_day": 575.0,
+        "pre_tax_profit_usd_per_day": -491.30350742290534,
+        "income_tax_usd_per_day": 0.0,
+        "tax_cut_savings_usd_per_day": 0.0,
+        "profit_usd_per_day": -491.30350742290534,
+        "profit_usd_per_wet_ton": -49.13035074229053,
+        "methane_sales_usd_per_day": 20.268591654247157,
+        "renewable_premium_usd_per_day": 7.795612174710445,
+        "carbon_credits_usd_per_day": 3.040288748137074,
+        "production_tax_credits_usd_per_day": 0.0,
+        "investment_tax_credits_usd_per_day": 0.0,
+        "char_sales_usd_per_day": 2.5920000000000005,
+        "avoided_disposal_usd_per_day": 50.0,
+        "transport_usd_per_day": 75.0,
+        "tolling_usd_per_day": 450.0,
+        "transfer_station_usd_per_day": 50.0,
+        "annualized_capex_usd_per_day": 0.0,
+        "financing_usd_per_day": 0.0,
+        "fixed_opex_usd_per_day": 0.0,
+        "variable_opex_usd_per_day": 0.0,
+        "labor_usd_per_day": 0.0,
+        "maintenance_usd_per_day": 0.0,
+        "insurance_usd_per_day": 0.0,
+        "admin_overhead_usd_per_day": 0.0,
+        "catalyst_chemicals_usd_per_day": 0.0,
+        "electricity_usd_per_day": 0.0,
+        "drying_thermal_usd_per_day": 0.0,
+        "water_usd_per_day": 0.0,
+        "ash_disposal_usd_per_day": 0.0,
+        "feedstock_cost_usd_per_day": 0.0
+      }
+    }
+  ],
+  "optimization_results": [
+    {
+      "mode": "existing_facility",
+      "best_profit_usd_per_day": -474.2631475120017,
+      "best_variables": {
+        "drying_target_moisture_fraction": 0.3956148286155243,
+        "gasification_efficiency_fraction": 0.75,
+        "syngas_to_methane_efficiency_fraction": 0.75,
+        "parasitic_load_fraction": 0.12,
+        "utilization_fraction": 1.0
+      },
+      "success": true,
+      "message": "Optimization terminated successfully."
+    }
+  ],
+  "sensitivity_results": [
+    {
+      "variable": "wet_tons_per_day",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -417.60798130946955,
+      "high_profit_usd_per_day": -564.9990335363411,
+      "swing_usd_per_day": -147.39105222687158
+    },
+    {
+      "variable": "tolling_fee_usd_per_wet_ton",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -423.80350742290534,
+      "high_profit_usd_per_day": -558.8035074229052,
+      "swing_usd_per_day": -134.9999999999999
+    },
+    {
+      "variable": "moisture_fraction",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -468.2775708285573,
+      "high_profit_usd_per_day": -514.3294440172533,
+      "swing_usd_per_day": -46.05187318869599
+    },
+    {
+      "variable": "tipping_fee_avoided_usd_per_wet_ton",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -498.80350742290534,
+      "high_profit_usd_per_day": -483.80350742290534,
+      "swing_usd_per_day": 15.0
+    },
+    {
+      "variable": "syngas_to_methane_efficiency_fraction",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -495.9691813094695,
+      "high_profit_usd_per_day": -486.6378335363411,
+      "swing_usd_per_day": 9.331347773128414
+    },
+    {
+      "variable": "gasification_efficiency_fraction",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -495.9691813094695,
+      "high_profit_usd_per_day": -486.63783353634113,
+      "swing_usd_per_day": 9.331347773128357
+    },
+    {
+      "variable": "methane_price_usd_per_mmbtu",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -494.3437961710424,
+      "high_profit_usd_per_day": -488.26321867476827,
+      "swing_usd_per_day": 6.080577496274145
+    },
+    {
+      "variable": "carbon_credit_usd_per_tco2e",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -491.7595507351259,
+      "high_profit_usd_per_day": -490.84746411068477,
+      "swing_usd_per_day": 0.9120866244411445
+    },
+    {
+      "variable": "production_tax_credit_usd_per_mmbtu",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -491.30350742290534,
+      "high_profit_usd_per_day": -491.30350742290534,
+      "swing_usd_per_day": 0.0
+    },
+    {
+      "variable": "investment_tax_credit_fraction_of_capex",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -491.30350742290534,
+      "high_profit_usd_per_day": -491.30350742290534,
+      "swing_usd_per_day": 0.0
+    },
+    {
+      "variable": "ash_fraction_dry",
+      "baseline_profit_usd_per_day": -491.30350742290534,
+      "low_profit_usd_per_day": -491.30350742290534,
+      "high_profit_usd_per_day": -491.30350742290534,
+      "swing_usd_per_day": 0.0
+    }
+  ]
+}
