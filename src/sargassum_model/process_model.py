@@ -3,10 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from .units import kg_per_mass_unit
+
 
 @dataclass
 class ProcessOutputs:
-    wet_tons_per_day: float
+    wet_tons_per_day: float  # tonnes when SI, short tons when US
     dry_tons_per_day: float
     dried_mass_tons_per_day: float
     ash_tons_per_day: float
@@ -48,7 +50,8 @@ def run_process_model(config: Dict[str, Any], overrides: Dict[str, float] | None
 
     dry_tpd = wet_tpd * (1.0 - moisture) * utilization
     dried_mass_tpd = dry_tpd / (1.0 - drying_target)
-    dry_kg_per_day = dry_tpd * 907.185
+    kg_per_mass = kg_per_mass_unit(config)
+    dry_kg_per_day = dry_tpd * kg_per_mass
     ash_tpd = dry_tpd * float(feed.get("ash_fraction_dry", 0.25))
 
     hhv_mj_per_kg = float(feed["hhv_mj_per_kg_dry"])
@@ -61,7 +64,7 @@ def run_process_model(config: Dict[str, Any], overrides: Dict[str, float] | None
     water_removed_tpd = max(initial_water_tpd - final_water_tpd, 0.0)
     latent_heat = float(process.get("latent_heat_mj_per_kg_water_removed", 2.6))
     dryer_eff = _clamp(float(process.get("dryer_efficiency_fraction", 0.70)), 0.1, 1.0)
-    drying_mj_per_day = water_removed_tpd * 907.185 * latent_heat / dryer_eff
+    drying_mj_per_day = water_removed_tpd * kg_per_mass * latent_heat / dryer_eff
     drying_mmbtu_per_day = drying_mj_per_day / 1055.06
 
     gross_mj_per_day = dry_kg_per_day * hhv_mj_per_kg * gas_eff * meth_eff

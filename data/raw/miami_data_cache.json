@@ -5,5 +5,5 @@
     "price": "EIA unavailable; using fallback methane price",
     "temperature": "NOAA Miami station daily average temperature"
   },
-  "pulled_at_utc": "2026-02-21T22:17:44.826911+00:00"
+  "pulled_at_utc": "2026-02-24T02:44:18.378091+00:00"
 }

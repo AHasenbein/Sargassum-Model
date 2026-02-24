@@ -23,6 +23,9 @@ project:
 
 app:
   basic_cost_mode: true
+  use_si_units: true
+  enable_tipping_fee: true
+  enable_carbon_credits: true
   log_level: "INFO"
   auth:
     enabled: true

@@ -51,15 +51,20 @@ def _base_revenue_and_feed_cost(
 ) -> tuple[float, float, float, float, float, float]:
     market = config["market"]
     feed = config["feedstock"]
+    app_cfg = config.get("app", {})
     methane_sales = process.methane_mmbtu_per_day * methane_price_usd_per_mmbtu
     renewable_premium = process.methane_mmbtu_per_day * float(market.get("renewable_gas_premium_usd_per_mmbtu", 0.0))
     carbon_credits = (
-        process.methane_mmbtu_per_day
-        * float(market.get("co2e_avoided_tco2e_per_mmbtu", 0.0))
-        * float(market.get("carbon_credit_usd_per_tco2e", 0.0))
+        (process.methane_mmbtu_per_day
+         * float(market.get("co2e_avoided_tco2e_per_mmbtu", 0.0))
+         * float(market.get("carbon_credit_usd_per_tco2e", 0.0)))
+        if app_cfg.get("enable_carbon_credits", True) else 0.0
     )
     char_sales = process.char_tons_per_day * float(market.get("byproduct_char_sale_usd_per_dry_ton", 0.0))
-    avoided_disposal = process.wet_tons_per_day * float(market.get("tipping_fee_avoided_usd_per_wet_ton", 0.0))
+    avoided_disposal = (
+        (process.wet_tons_per_day * float(market.get("tipping_fee_avoided_usd_per_wet_ton", 0.0)))
+        if app_cfg.get("enable_tipping_fee", True) else 0.0
+    )
     feedstock_cost = process.wet_tons_per_day * float(feed.get("delivered_cost_usd_per_wet_ton", 0.0))
     return methane_sales, renewable_premium, carbon_credits, char_sales, avoided_disposal, feedstock_cost
 

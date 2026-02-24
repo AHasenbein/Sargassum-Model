@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict
 
 from .config import annualized_capex as compute_annualized_capex
+from .units import kg_per_mass_unit
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -75,9 +76,10 @@ def run_pyrolysis(config: Dict[str, Any], overrides: Dict[str, float] | None = N
     final_water_tpd = max(dried_mass_tpd - dry_tpd, 0.0)
     water_removed_tpd = max(initial_water_tpd - final_water_tpd, 0.0)
 
+    kg_per_mass = kg_per_mass_unit(config)
     latent_heat = float(config["process"].get("latent_heat_mj_per_kg_water_removed", 2.45))
     dryer_eff = _clamp(float(config["process"].get("dryer_efficiency_fraction", 0.70)), 0.1, 1.0)
-    drying_mj_day = water_removed_tpd * 907.185 * latent_heat / dryer_eff
+    drying_mj_day = water_removed_tpd * kg_per_mass * latent_heat / dryer_eff
     drying_mmbtu_day = drying_mj_day / 1055.06
 
     biochar_yield = _clamp(float(pyro["biochar_yield_fraction_of_dry_feed"]), 0.0, 0.9)
@@ -99,15 +101,20 @@ def run_pyrolysis(config: Dict[str, Any], overrides: Dict[str, float] | None = N
         utilization_fraction=utilization,
     )
 
+    app_cfg = config.get("app", {})
     biochar_sales = biochar_tpd * float(market.get("biochar_price_usd_per_ton", 0.0))
     biooil_sales = biooil_tpd * float(market.get("biooil_price_usd_per_ton", 0.0))
     syngas_value = syngas_mmbtu_day * float(market.get("syngas_value_usd_per_mmbtu", 0.0))
     carbon_credits = (
-        biochar_tpd
-        * float(pyro.get("biochar_co2e_stored_t_per_ton", 0.0))
-        * float(market.get("carbon_credit_usd_per_tco2e", 0.0))
+        (biochar_tpd
+         * float(pyro.get("biochar_co2e_stored_t_per_ton", 0.0))
+         * float(market.get("carbon_credit_usd_per_tco2e", 0.0)))
+        if app_cfg.get("enable_carbon_credits", True) else 0.0
     )
-    tipping_fee = wet_tpd * float(market.get("tipping_fee_avoided_usd_per_wet_ton", 0.0))
+    tipping_fee = (
+        (wet_tpd * float(market.get("tipping_fee_avoided_usd_per_wet_ton", 0.0)))
+        if app_cfg.get("enable_tipping_fee", True) else 0.0
+    )
     production_tax_credits = syngas_mmbtu_day * float(policy.get("production_tax_credit_usd_per_mmbtu", 0.0))
     investment_tax_credits = (
         float(pyro.get("capex_usd", 0.0))
