@@ -55,5 +55,11 @@ def validate_and_normalize_config(config: Dict[str, Any]) -> Dict[str, Any]:
     if mode not in {"auto_compare", "onsite_energy", "existing_facility"}:
         cfg.setdefault("project", {})["run_mode"] = "existing_facility"
 
+    cfg.setdefault("time", {})
+    cfg["time"].setdefault("operating_days_per_year", 290)
+    cfg.setdefault("economics", {})
+    cfg["economics"].setdefault("discount_rate_fraction", 0.10)
+    cfg["economics"].setdefault("capex_lifetime_years", 15)
+
     return cfg
 

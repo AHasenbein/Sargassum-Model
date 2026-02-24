@@ -3,7 +3,8 @@
 # Conversion constants
 KG_PER_SHORT_TON = 907.185
 KG_PER_TONNE = 1000.0
-GJ_PER_MMBTU = 1.05506
+MJ_PER_MMBTU = 1055.06  # 1 MMBtu = 1055.06 MJ
+GJ_PER_MMBTU = 1.05506  # 1 MMBtu = 1.05506 GJ
 
 
 def use_si(config: dict) -> bool:

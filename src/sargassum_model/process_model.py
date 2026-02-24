@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from .units import kg_per_mass_unit
+from .units import kg_per_mass_unit, MJ_PER_MMBTU
 
 
 @dataclass
@@ -65,11 +65,11 @@ def run_process_model(config: Dict[str, Any], overrides: Dict[str, float] | None
     latent_heat = float(process.get("latent_heat_mj_per_kg_water_removed", 2.6))
     dryer_eff = _clamp(float(process.get("dryer_efficiency_fraction", 0.70)), 0.1, 1.0)
     drying_mj_per_day = water_removed_tpd * kg_per_mass * latent_heat / dryer_eff
-    drying_mmbtu_per_day = drying_mj_per_day / 1055.06
+    drying_mmbtu_per_day = drying_mj_per_day / MJ_PER_MMBTU
 
     gross_mj_per_day = dry_kg_per_day * hhv_mj_per_kg * gas_eff * meth_eff
     methane_nm3_per_day = gross_mj_per_day / methane_lhv_mj_per_nm3
-    gross_mmbtu_per_day = gross_mj_per_day / 1055.06
+    gross_mmbtu_per_day = gross_mj_per_day / MJ_PER_MMBTU
     net_mmbtu_per_day = gross_mmbtu_per_day * (1.0 - parasitic)
     gasification_kwh = dry_tpd * float(process.get("gasification_power_kwh_per_dry_ton", 120.0))
     methanation_kwh = net_mmbtu_per_day * float(process.get("methanation_power_kwh_per_mmbtu_methane", 18.0))

@@ -16,10 +16,8 @@ from src.sargassum_model.data_sources import pull_miami_data
 from src.sargassum_model.units import (
     energy_to_display,
     mass_label,
-    mass_to_display,
     mass_unit_long,
     energy_label,
-    use_si,
 )
 from src.sargassum_model.modes import run_mode_bundle
 from src.sargassum_model.optimizer import optimize_mode, run_sensitivity
@@ -262,7 +260,7 @@ def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
         50.0,
     )
     cfg["onsite_energy"]["variable_opex_usd_per_wet_ton"] = st.sidebar.number_input(
-        "Onsite variable OPEX (USD/wet ton)",
+        f"Onsite variable OPEX (USD/wet {mass_label(cfg)})",
         0.0,
         500.0,
         float(cfg["onsite_energy"]["variable_opex_usd_per_wet_ton"]),
@@ -278,14 +276,14 @@ def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
         1.0,
     )
     cfg["existing_facility"]["transport_cost_usd_per_ton_km"] = st.sidebar.number_input(
-        "Transport cost (USD/ton-km)",
+        f"Transport cost (USD/{mass_label(cfg)}·km)",
         0.05,
         2.0,
         float(cfg["existing_facility"]["transport_cost_usd_per_ton_km"]),
         0.01,
     )
     cfg["existing_facility"]["tolling_fee_usd_per_wet_ton"] = st.sidebar.number_input(
-        "Facility tolling fee (USD/wet ton)",
+        f"Facility tolling fee (USD/wet {mass_label(cfg)})",
         0.0,
         250.0,
         float(cfg["existing_facility"]["tolling_fee_usd_per_wet_ton"]),
@@ -351,14 +349,14 @@ def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
         0.01,
     )
     cfg["market"]["biochar_price_usd_per_ton"] = st.sidebar.number_input(
-        "Biochar sale price (USD/ton)",
+        f"Biochar sale price (USD/{mass_label(cfg)})",
         0.0,
         2000.0,
         float(cfg["market"]["biochar_price_usd_per_ton"]),
         10.0,
     )
     cfg["market"]["biooil_price_usd_per_ton"] = st.sidebar.number_input(
-        "Bio-oil sale price (USD/ton)",
+        f"Bio-oil sale price (USD/{mass_label(cfg)})",
         0.0,
         2000.0,
         float(cfg["market"]["biooil_price_usd_per_ton"]),
@@ -378,46 +376,47 @@ def sidebar_inputs(config: Dict[str, Any]) -> Dict[str, Any]:
         cfg.setdefault("utilities", {})
         cfg.setdefault("operations", {})
         cfg.setdefault("residues", {})
+        adv_mass = mass_label(cfg)
         cfg["time"]["operating_days_per_year"] = int(st.number_input("Operating days/year", 1, 365, int(cfg["time"].get("operating_days_per_year", 290)), 1))
         cfg["feedstock"]["ash_fraction_dry"] = st.number_input("Ash fraction (dry)", 0.05, 0.70, float(cfg["feedstock"]["ash_fraction_dry"]), 0.01)
         cfg["feedstock"]["carbon_fraction_dry"] = st.number_input("Carbon fraction (dry)", 0.15, 0.50, float(cfg["feedstock"]["carbon_fraction_dry"]), 0.01)
         cfg["feedstock"]["hhv_mj_per_kg_dry"] = st.number_input("HHV (MJ/kg dry)", 5.0, 25.0, float(cfg["feedstock"]["hhv_mj_per_kg_dry"]), 0.5)
         cfg["process"]["latent_heat_mj_per_kg_water_removed"] = st.number_input("Latent heat water (MJ/kg)", 2.0, 3.0, float(cfg["process"].get("latent_heat_mj_per_kg_water_removed", 2.45)), 0.05)
         cfg["process"]["dryer_efficiency_fraction"] = st.number_input("Dryer efficiency", 0.30, 0.95, float(cfg["process"].get("dryer_efficiency_fraction", 0.70)), 0.01)
-        cfg["process"]["gasification_power_kwh_per_dry_ton"] = st.number_input("Gasification power (kWh/dry t)", 50.0, 300.0, float(cfg["process"].get("gasification_power_kwh_per_dry_ton", 150)), 5.0)
+        cfg["process"]["gasification_power_kwh_per_dry_ton"] = st.number_input(f"Gasification power (kWh/dry {adv_mass})", 50.0, 300.0, float(cfg["process"].get("gasification_power_kwh_per_dry_ton", 150)), 5.0)
         cfg["process"]["methanation_power_kwh_per_mmbtu_methane"] = st.number_input("Methanation power (kWh/MMBtu)", 5.0, 50.0, float(cfg["process"].get("methanation_power_kwh_per_mmbtu_methane", 18)), 1.0)
         cfg["process"]["char_yield_fraction_of_dry_feed"] = st.number_input("Char yield (fraction)", 0.05, 0.25, float(cfg["process"].get("char_yield_fraction_of_dry_feed", 0.12)), 0.01)
         cfg["market"]["methane_price_usd_per_mmbtu"] = st.number_input("Methane price (USD/MMBtu)", 0.0, 50.0, float(cfg["market"].get("methane_price_usd_per_mmbtu", 6.5)), 0.25)
         cfg["market"]["fallback_natural_gas_price_usd_per_mmbtu"] = st.number_input("Fallback gas price (USD/MMBtu)", 0.0, 50.0, float(cfg["market"].get("fallback_natural_gas_price_usd_per_mmbtu", 6.5)), 0.25)
-        cfg["market"]["tipping_fee_avoided_usd_per_wet_ton"] = st.number_input("Tipping fee avoided (USD/wet t)", 0.0, 200.0, float(cfg["market"].get("tipping_fee_avoided_usd_per_wet_ton", 5.0)), 1.0)
+        cfg["market"]["tipping_fee_avoided_usd_per_wet_ton"] = st.number_input(f"Tipping fee avoided (USD/wet {adv_mass})", 0.0, 200.0, float(cfg["market"].get("tipping_fee_avoided_usd_per_wet_ton", 5.0)), 1.0)
         cfg["market"]["renewable_gas_premium_usd_per_mmbtu"] = st.number_input("Renewable gas premium (USD/MMBtu)", 0.0, 20.0, float(cfg["market"].get("renewable_gas_premium_usd_per_mmbtu", 2.5)), 0.25)
         cfg["market"]["co2e_avoided_tco2e_per_mmbtu"] = st.number_input("CO2e avoided (tCO2e/MMBtu)", 0.0, 0.15, float(cfg["market"].get("co2e_avoided_tco2e_per_mmbtu", 0.065)), 0.005)
-        cfg["market"]["byproduct_char_sale_usd_per_dry_ton"] = st.number_input("Char sale price (USD/dry t)", 0.0, 500.0, float(cfg["market"].get("byproduct_char_sale_usd_per_dry_ton", 20)), 5.0)
+        cfg["market"]["byproduct_char_sale_usd_per_dry_ton"] = st.number_input(f"Char sale price (USD/dry {adv_mass})", 0.0, 500.0, float(cfg["market"].get("byproduct_char_sale_usd_per_dry_ton", 20)), 5.0)
         cfg["market"]["syngas_value_usd_per_mmbtu"] = st.number_input("Syngas value (USD/MMBtu)", 0.0, 20.0, float(cfg["market"].get("syngas_value_usd_per_mmbtu", 6.0)), 0.5)
         cfg["pyrolysis"]["target_moisture_fraction"] = st.number_input("Pyrolysis target moisture", 0.05, 0.40, float(cfg["pyrolysis"].get("target_moisture_fraction", 0.20)), 0.01)
         cfg["pyrolysis"]["utilization_fraction"] = st.number_input("Pyrolysis utilization", 0.50, 1.0, float(cfg["pyrolysis"].get("utilization_fraction", 1.0)), 0.01)
-        cfg["pyrolysis"]["syngas_energy_mmbtu_per_dry_ton"] = st.number_input("Pyrolysis syngas (MMBtu/dry t)", 1.0, 10.0, float(cfg["pyrolysis"].get("syngas_energy_mmbtu_per_dry_ton", 4.0)), 0.5)
-        cfg["pyrolysis"]["process_power_kwh_per_dry_ton"] = st.number_input("Pyrolysis power (kWh/dry t)", 50.0, 300.0, float(cfg["pyrolysis"].get("process_power_kwh_per_dry_ton", 140)), 5.0)
+        cfg["pyrolysis"]["syngas_energy_mmbtu_per_dry_ton"] = st.number_input(f"Pyrolysis syngas (MMBtu/dry {adv_mass})", 1.0, 10.0, float(cfg["pyrolysis"].get("syngas_energy_mmbtu_per_dry_ton", 4.0)), 0.5)
+        cfg["pyrolysis"]["process_power_kwh_per_dry_ton"] = st.number_input(f"Pyrolysis power (kWh/dry {adv_mass})", 50.0, 300.0, float(cfg["pyrolysis"].get("process_power_kwh_per_dry_ton", 140)), 5.0)
         cfg["pyrolysis"]["fixed_opex_usd_per_day"] = st.number_input("Pyrolysis fixed OPEX (USD/day)", 0.0, 50000.0, float(cfg["pyrolysis"].get("fixed_opex_usd_per_day", 0)), 100.0)
-        cfg["pyrolysis"]["variable_opex_usd_per_wet_ton"] = st.number_input("Pyrolysis variable OPEX (USD/wet t)", 0.0, 100.0, float(cfg["pyrolysis"].get("variable_opex_usd_per_wet_ton", 18)), 1.0)
-        cfg["pyrolysis"]["packaging_usd_per_ton_biochar"] = st.number_input("Biochar packaging (USD/t)", 0.0, 100.0, float(cfg["pyrolysis"].get("packaging_usd_per_ton_biochar", 22)), 1.0)
-        cfg["pyrolysis"]["biochar_transport_usd_per_ton"] = st.number_input("Biochar transport (USD/t)", 0.0, 100.0, float(cfg["pyrolysis"].get("biochar_transport_usd_per_ton", 30)), 1.0)
-        cfg["pyrolysis"]["biochar_co2e_stored_t_per_ton"] = st.number_input("Biochar CO2e stored (t/t)", 0.0, 5.0, float(cfg["pyrolysis"].get("biochar_co2e_stored_t_per_ton", 2.2)), 0.1)
+        cfg["pyrolysis"]["variable_opex_usd_per_wet_ton"] = st.number_input(f"Pyrolysis variable OPEX (USD/wet {adv_mass})", 0.0, 100.0, float(cfg["pyrolysis"].get("variable_opex_usd_per_wet_ton", 18)), 1.0)
+        cfg["pyrolysis"]["packaging_usd_per_ton_biochar"] = st.number_input(f"Biochar packaging (USD/{adv_mass})", 0.0, 100.0, float(cfg["pyrolysis"].get("packaging_usd_per_ton_biochar", 22)), 1.0)
+        cfg["pyrolysis"]["biochar_transport_usd_per_ton"] = st.number_input(f"Biochar transport (USD/{adv_mass})", 0.0, 100.0, float(cfg["pyrolysis"].get("biochar_transport_usd_per_ton", 30)), 1.0)
+        cfg["pyrolysis"]["biochar_co2e_stored_t_per_ton"] = st.number_input("Biochar CO2e stored (tCO2e/t)", 0.0, 5.0, float(cfg["pyrolysis"].get("biochar_co2e_stored_t_per_ton", 2.2)), 0.1)
         cfg["economics"]["discount_rate_fraction"] = st.number_input("Discount rate", 0.0, 0.25, float(cfg["economics"].get("discount_rate_fraction", 0.10)), 0.01)
         cfg["economics"]["capex_lifetime_years"] = int(st.number_input("CAPEX lifetime (years)", 5, 30, int(cfg["economics"].get("capex_lifetime_years", 15)), 1))
         cfg["economics"]["financing_cost_fraction_of_capex_per_year"] = st.number_input("Financing cost (fraction)", 0.0, 0.15, float(cfg["economics"].get("financing_cost_fraction_of_capex_per_year", 0)), 0.01)
-        cfg["existing_facility"]["transfer_station_fee_usd_per_wet_ton"] = st.number_input("Transfer station fee (USD/wet t)", 0.0, 50.0, float(cfg["existing_facility"].get("transfer_station_fee_usd_per_wet_ton", 5)), 0.5)
+        cfg["existing_facility"]["transfer_station_fee_usd_per_wet_ton"] = st.number_input(f"Transfer station fee (USD/wet {adv_mass})", 0.0, 50.0, float(cfg["existing_facility"].get("transfer_station_fee_usd_per_wet_ton", 5)), 0.5)
         cfg["utilities"]["electricity_price_usd_per_kwh"] = st.number_input("Electricity price (USD/kWh)", 0.0, 0.50, float(cfg["utilities"].get("electricity_price_usd_per_kwh", 0.11)), 0.01)
         cfg["utilities"]["thermal_energy_price_usd_per_mmbtu"] = st.number_input("Thermal energy (USD/MMBtu)", 0.0, 20.0, float(cfg["utilities"].get("thermal_energy_price_usd_per_mmbtu", 7)), 0.5)
         cfg["utilities"]["water_price_usd_per_m3"] = st.number_input("Water price (USD/m³)", 0.0, 10.0, float(cfg["utilities"].get("water_price_usd_per_m3", 2)), 0.25)
-        cfg["utilities"]["process_water_m3_per_wet_ton"] = st.number_input("Process water (m³/wet t)", 0.0, 2.0, float(cfg["utilities"].get("process_water_m3_per_wet_ton", 0.5)), 0.05)
+        cfg["utilities"]["process_water_m3_per_wet_ton"] = st.number_input(f"Process water (m³/wet {adv_mass})", 0.0, 2.0, float(cfg["utilities"].get("process_water_m3_per_wet_ton", 0.5)), 0.05)
         cfg["operations"]["labor_usd_per_day"] = st.number_input("Labor (USD/day)", 0.0, 10000.0, float(cfg["operations"].get("labor_usd_per_day", 0)), 50.0)
         cfg["operations"]["maintenance_fraction_of_capex_per_year"] = st.number_input("Maintenance (% CAPEX/yr)", 0.0, 0.15, float(cfg["operations"].get("maintenance_fraction_of_capex_per_year", 0)), 0.01)
         cfg["operations"]["insurance_fraction_of_capex_per_year"] = st.number_input("Insurance (% CAPEX/yr)", 0.0, 0.05, float(cfg["operations"].get("insurance_fraction_of_capex_per_year", 0)), 0.005)
         cfg["operations"]["admin_overhead_usd_per_day"] = st.number_input("Admin overhead (USD/day)", 0.0, 2000.0, float(cfg["operations"].get("admin_overhead_usd_per_day", 0)), 50.0)
-        cfg["operations"]["catalyst_usd_per_wet_ton"] = st.number_input("Catalyst (USD/wet t)", 0.0, 20.0, float(cfg["operations"].get("catalyst_usd_per_wet_ton", 5)), 0.5)
-        cfg["operations"]["chemicals_usd_per_wet_ton"] = st.number_input("Chemicals (USD/wet t)", 0.0, 20.0, float(cfg["operations"].get("chemicals_usd_per_wet_ton", 4)), 0.5)
-        cfg["residues"]["ash_disposal_usd_per_dry_ton_ash"] = st.number_input("Ash disposal (USD/dry t)", 0.0, 500.0, float(cfg["residues"].get("ash_disposal_usd_per_dry_ton_ash", 180)), 10.0)
+        cfg["operations"]["catalyst_usd_per_wet_ton"] = st.number_input(f"Catalyst (USD/wet {adv_mass})", 0.0, 20.0, float(cfg["operations"].get("catalyst_usd_per_wet_ton", 5)), 0.5)
+        cfg["operations"]["chemicals_usd_per_wet_ton"] = st.number_input(f"Chemicals (USD/wet {adv_mass})", 0.0, 20.0, float(cfg["operations"].get("chemicals_usd_per_wet_ton", 4)), 0.5)
+        cfg["residues"]["ash_disposal_usd_per_dry_ton_ash"] = st.number_input(f"Ash disposal (USD/dry {adv_mass})", 0.0, 500.0, float(cfg["residues"].get("ash_disposal_usd_per_dry_ton_ash", 180)), 10.0)
 
     return cfg
 
@@ -521,7 +520,10 @@ def run_dashboard() -> None:
             }
             for r in results
         ]
-        df_table = pd.DataFrame(table_rows).rename(columns={"methane_energy_per_day": f"Methane ({energy_label(working_config)}/day)"})
+        df_table = pd.DataFrame(table_rows).rename(columns={
+            "methane_energy_per_day": f"Methane ({energy_label(working_config)}/day)",
+            "profit_usd_per_wet_ton": f"Profit (USD/wet {mass_label(working_config)})",
+        })
         st.subheader("Mode comparison table")
         st.dataframe(df_table, width="stretch")
 
